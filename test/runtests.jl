@@ -1,6 +1,7 @@
 using CategoricalArrays, Compat, CSV, DataFrames, StatsBase
 using Compat.Test
 using GLM
+using StatsFuns: logistic
 
 test_show(x) = show(IOBuffer(), x)
 
@@ -196,7 +197,7 @@ clotting = DataFrame(u = log.([5,10,15,20,30,40,60,80,100]),
 @testset "Gamma" begin
     gm8 = fit(GeneralizedLinearModel, @formula(lot1 ~ 1 + u), clotting, Gamma())
     @test !GLM.cancancel(gm8.model.rr)
-    @test isa(Link(gm8.model), InverseLink)
+    @test isa(GLM.Link(gm8.model), InverseLink)
     test_show(gm8)
     @test dof(gm8) == 3
     @test isapprox(deviance(gm8), 0.016729715178484157)
@@ -212,7 +213,7 @@ end
 @testset "InverseGaussian" begin
     gm8a = fit(GeneralizedLinearModel, @formula(lot1 ~ 1 + u), clotting, InverseGaussian())
     @test !GLM.cancancel(gm8a.model.rr)
-    @test isa(Link(gm8a.model), InverseSquareLink)
+    @test isa(GLM.Link(gm8a.model), InverseSquareLink)
     test_show(gm8a)
     @test dof(gm8a) == 3
     @test isapprox(deviance(gm8a), 0.006931128347234519)
@@ -487,14 +488,14 @@ end
 
 @testset "Issue 153" begin
     X = [ones(10) randn(10)]
-    Test.@inferred cholfact(DensePredQR{Float64}(X))
+    Test.@inferred cholfact(GLM.DensePredQR{Float64}(X))
 end
 
 @testset "Issue 224" begin
     srand(1009)
     # Make X slightly ill conditioned to amplify rounding errors
     X, y = qr(randn(100, 5))[1]*Diagonal(logspace(-2,2,5))*qr(randn(5,5))[1]', randn(100)
-    @test coef(GLM.glm(X, y, GLM.Normal(), GLM.IdentityLink())) ≈ coef(lm(X, y))
+    @test coef(glm(X, y, Normal(), IdentityLink())) ≈ coef(lm(X, y))
 end
 
 @testset "Issue #228" begin
